@@ -6,7 +6,7 @@ from typing import override
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout import FormattedTextControl, Window, HSplit, WindowAlign
+from prompt_toolkit.layout import FormattedTextControl, HSplit, Window, WindowAlign
 from prompt_toolkit.widgets import Dialog, Label
 
 
@@ -100,7 +100,7 @@ class PathPicker:
 
         try:
             self._update_options_list(new_dir)
-        except IOError:
+        except OSError:
             return
 
         self.old_selected_options[self.current_dir] = self.selected_option
@@ -119,7 +119,7 @@ class PathPicker:
 
         try:
             self._update_options_list(new_dir)
-        except IOError:
+        except OSError:
             return
 
         self.old_selected_options[self.current_dir] = self.selected_option
@@ -144,7 +144,7 @@ class PathPicker:
 
         try:
             self._update_options_list(new_dir)
-        except IOError:
+        except OSError:
             return
 
         self.old_selected_options[self.current_dir] = self.selected_option
