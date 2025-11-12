@@ -1,6 +1,7 @@
 import os
 from asyncio import ensure_future
 from pathlib import Path
+from threading import BoundedSemaphore
 
 from prompt_toolkit.application import get_app
 from prompt_toolkit.key_binding import KeyPressEvent
@@ -27,6 +28,8 @@ style = Style.from_dict(
     }
 )
 
+open_sem = BoundedSemaphore()
+
 
 def _load_xontrib_(xsh: XonshSession, **_):
     @events.on_ptk_create
@@ -43,28 +46,33 @@ def _load_xontrib_(xsh: XonshSession, **_):
 
             async def coro():
                 nonlocal event
-                new_dir: Path | None = await dialog.show_as_float(
-                    PathPickerDialog(), height=20, top=0
-                )
 
-                if not new_dir:
-                    return
+                if open_sem.acquire(blocking=False):
+                    try:
+                        new_dir: Path | None = await dialog.show_as_float(
+                            PathPickerDialog(), height=20, top=0
+                        )
 
-                # Change the working directory to the new one
-                os.chdir(new_dir)
+                        if not new_dir:
+                            return
 
-                # As we have just fucked with the working directory in a way the shell does not expect us to, we need to
-                # update the prompt message and re-render it manually.
-                shell: PromptToolkitShell = xsh.shell.shell
-                prompt_fields: PromptFields = shell.prompt_formatter.fields
-                # Delete the prompt formatter's cache, it is out of date now.
-                prompt_fields.reset()
-                # Update the shell environment with the new PWD.
-                xsh.env["PWD"] = str(new_dir)
-                # Re-format the prompt with the new PWD
-                shell.prompter.message = shell.prompt_tokens()
-                # Finally, re-render the prompt.
-                event.cli.renderer.erase()
+                        # Change the working directory to the new one
+                        os.chdir(new_dir)
+
+                        # As we have just fucked with the working directory in a way the shell does not expect us to, we need to
+                        # update the prompt message and re-render it manually.
+                        shell: PromptToolkitShell = xsh.shell.shell
+                        prompt_fields: PromptFields = shell.prompt_formatter.fields
+                        # Delete the prompt formatter's cache, it is out of date now.
+                        prompt_fields.reset()
+                        # Update the shell environment with the new PWD.
+                        xsh.env["PWD"] = str(new_dir)
+                        # Re-format the prompt with the new PWD
+                        shell.prompter.message = shell.prompt_tokens()
+                        # Finally, re-render the prompt.
+                        event.cli.renderer.erase()
+                    finally:
+                        open_sem.release()
 
             ensure_future(coro())
 
