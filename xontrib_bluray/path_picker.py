@@ -54,6 +54,8 @@ class PathPicker:
         )  # Not sure why, but esc specifically has a weird delay for closing it
         @kb.add(Keys.Backspace)
         @kb.add("q")
+        @kb.add("c-q")
+        @kb.add("c-c")
         def _(event):
             self._cancelled()
 

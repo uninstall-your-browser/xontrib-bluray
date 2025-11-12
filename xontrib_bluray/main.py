@@ -1,9 +1,9 @@
 import os
 from asyncio import ensure_future
 from pathlib import Path
-from threading import BoundedSemaphore
 
 from prompt_toolkit.application import get_app
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.styles import Style, merge_styles
@@ -28,16 +28,19 @@ style = Style.from_dict(
     }
 )
 
-open_sem = BoundedSemaphore()
-
 
 def _load_xontrib_(xsh: XonshSession, **_):
     @events.on_ptk_create
     def custom_keybindings(bindings, **kw):
         added_styles = False
+        _is_open = False
 
-        @bindings.add(Keys.ControlK)
-        @bindings.add("c-y")
+        @Condition
+        def is_not_open():
+            return not _is_open
+
+        @bindings.add(Keys.ControlK, filter=is_not_open)
+        @bindings.add("c-y", filter=is_not_open)  # Mainly for pycharm
         def show_pathpicker(event: KeyPressEvent):
             nonlocal added_styles
             if not added_styles:
@@ -45,9 +48,10 @@ def _load_xontrib_(xsh: XonshSession, **_):
                 added_styles = True
 
             async def coro():
-                nonlocal event
+                nonlocal event, _is_open
 
-                if open_sem.acquire(blocking=False):
+                if not _is_open:
+                    _is_open = True
                     try:
                         new_dir: Path | None = await dialog.show_as_float(
                             PathPickerDialog(), height=20, top=0
@@ -72,7 +76,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
                         # Finally, re-render the prompt.
                         event.cli.renderer.erase()
                     finally:
-                        open_sem.release()
+                        _is_open = False
 
             ensure_future(coro())
 
