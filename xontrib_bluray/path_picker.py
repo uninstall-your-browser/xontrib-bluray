@@ -6,8 +6,8 @@ from typing import override
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout import FormattedTextControl, Window
-from prompt_toolkit.widgets import Dialog
+from prompt_toolkit.layout import FormattedTextControl, Window, HSplit, WindowAlign
+from prompt_toolkit.widgets import Dialog, Label
 
 
 def is_dotfile(path: Path) -> bool:
@@ -15,9 +15,11 @@ def is_dotfile(path: Path) -> bool:
 
 
 class PathPicker:
+    show_dotfiles = True
+
     def __init__(self):
-        self.show_dotfiles = True
         self.kb = KeyBindings()
+        self.bottom_bar = Label("", style="grey italic", align=WindowAlign.RIGHT)
         self.current_dir = Path(".").absolute()
         self.future = Future[Path | None]()
         self.options: list[Path]
@@ -51,6 +53,7 @@ class PathPicker:
             Keys.Escape, eager=True
         )  # Not sure why, but esc specifically has a weird delay for closing it
         @kb.add(Keys.Backspace)
+        @kb.add("q")
         def _(event):
             self._cancelled()
 
@@ -69,10 +72,21 @@ class PathPicker:
         def _(event):
             self.selected_option = 0
 
-        self.container = Window(
-            FormattedTextControl(self._draw, focusable=True, key_bindings=kb),
-            always_hide_cursor=True,
+        @kb.add("~")
+        def _(event):
+            self._navigate_home()
+
+        self.container = HSplit(
+            [
+                Window(
+                    FormattedTextControl(self._draw, focusable=True, key_bindings=kb),
+                    always_hide_cursor=True,
+                ),
+                self.bottom_bar,
+            ]
         )
+
+        self._update_bottom_bar()
 
     def _move_cursor(self, direction: int) -> None:
         # Prevent modulo by 0 errors
@@ -81,12 +95,31 @@ class PathPicker:
 
         self.selected_option = (self.selected_option + direction) % len(self.options)
 
+    def _navigate_home(self):
+        new_dir = Path.home()
+
+        try:
+            self._update_options_list(new_dir)
+        except IOError:
+            return
+
+        self.old_selected_options[self.current_dir] = self.selected_option
+        index_of_current_item_in_parent = (
+            self.options.index(self.current_dir)
+            if self.current_dir in self.options
+            else 0
+        )
+        self.selected_option = self.old_selected_options.get(
+            new_dir, index_of_current_item_in_parent
+        )
+        self.current_dir = new_dir
+
     def _navigate_up(self):
         new_dir = self.current_dir.parent
 
         try:
             self._update_options_list(new_dir)
-        except OSError:
+        except IOError:
             return
 
         self.old_selected_options[self.current_dir] = self.selected_option
@@ -111,7 +144,7 @@ class PathPicker:
 
         try:
             self._update_options_list(new_dir)
-        except OSError:
+        except IOError:
             return
 
         self.old_selected_options[self.current_dir] = self.selected_option
@@ -124,6 +157,7 @@ class PathPicker:
         selection = self.options[self.selected_option]
         self.show_dotfiles = not self.show_dotfiles
         self._update_options_list(self.current_dir)
+        self._update_bottom_bar()
 
         if selection in self.options:
             # If the selected is still in the list, re-select it
@@ -163,6 +197,11 @@ class PathPicker:
                 # Fallback
                 self.selected_option = 0
 
+    def _update_bottom_bar(self):
+        dotfile_icon = "\uf441" if self.show_dotfiles else "\uf4c5"
+
+        self.bottom_bar.text = f"{dotfile_icon} Dotfiles"
+
     def _update_options_list(self, new_dir: Path):
         def dotfiles_filter(path: Path):
             if self.show_dotfiles:
@@ -173,7 +212,7 @@ class PathPicker:
         items = list(filter(dotfiles_filter, new_dir.iterdir()))
 
         def name_key(it: Path):
-            return it.name
+            return it.name.lower()
 
         dirs = sorted(filter(lambda it: it.is_dir(), items), key=name_key)
         files = sorted(filter(lambda it: it.is_file(), items), key=name_key)
@@ -256,6 +295,11 @@ class PathPickerDialog(PathPicker):
     @override
     def _navigate_up(self):
         super()._navigate_up()
+        self.dialog.title = str(self.current_dir)
+
+    @override
+    def _navigate_home(self):
+        super()._navigate_home()
         self.dialog.title = str(self.current_dir)
 
     @override
