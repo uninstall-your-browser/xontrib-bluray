@@ -125,14 +125,15 @@ class PathPicker:
             return
 
         self.old_selected_options[self.current_dir] = self.selected_option
+
         index_of_current_item_in_parent = (
             self.options.index(self.current_dir)
+            # Toggling dotfiles may cause the current directory to disappear
             if self.current_dir in self.options
             else 0
         )
-        self.selected_option = self.old_selected_options.get(
-            new_dir, index_of_current_item_in_parent
-        )
+        self.selected_option = index_of_current_item_in_parent
+
         self.current_dir = new_dir
 
     def _navigate_down(self):
