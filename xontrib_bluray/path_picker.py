@@ -17,6 +17,7 @@ def is_dotfile(path: Path) -> bool:
     return path.name.startswith(".")
 
 
+# Shitty settings management, can't really justify adding a package for this when it's literally just 1 setting
 def read_show_dotfiles_state() -> bool:
     if not STATE_FILE.exists():
         return True
