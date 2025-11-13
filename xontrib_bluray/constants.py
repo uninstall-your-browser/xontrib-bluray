@@ -8,10 +8,10 @@ style = Style.from_dict(
         "dialog.body": "fg:white bg:ansidefault",
         "frame.label": "royalblue",
         "list.dir": "#9595ea",
-        "list.dir.hidden": "#6464a5",
+        "list.dir.hidden": "#4c4c99",
         "list.thisdir": "MediumSeaGreen",
         "list.file": "darkgray",
-        "list.file.hidden": "#636363",
+        "list.file.hidden": "#666666",
         # "list.selected": "orangered",
         "list.selected": "bg:white fg:black",
     }
