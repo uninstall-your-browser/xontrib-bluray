@@ -8,7 +8,7 @@ style = Style.from_dict(
         "dialog.body": "fg:white bg:ansidefault",
         "frame.label": "royalblue",
         "list.dir": "#9595ea",
-        "list.dir.hidden": "#5555dd",
+        "list.dir.hidden": "#6464a5",
         "list.thisdir": "MediumSeaGreen",
         "list.file": "darkgray",
         "list.file.hidden": "gray",
