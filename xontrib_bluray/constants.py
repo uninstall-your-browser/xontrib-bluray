@@ -11,7 +11,7 @@ style = Style.from_dict(
         "list.dir.hidden": "#6464a5",
         "list.thisdir": "MediumSeaGreen",
         "list.file": "darkgray",
-        "list.file.hidden": "#949494",
+        "list.file.hidden": "#636363",
         # "list.selected": "orangered",
         "list.selected": "bg:white fg:black",
     }
