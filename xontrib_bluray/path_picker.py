@@ -259,6 +259,12 @@ class PathPicker:
         if not self.options:
             return [("#ff0000", "It's empty here!")]
 
+        this_dir_label = "<this directory>"
+
+        longest_name = max(
+            max(len(option.name) for option in self.options), len(this_dir_label)
+        )
+
         tokens = []
         for idx, option in enumerate(self.options):
             if idx == self.selected_option:
@@ -283,7 +289,8 @@ class PathPicker:
                 tokens.append(
                     (
                         f"{combined_class} italic",
-                        "<this directory>",
+                        this_dir_label
+                        + (" " * (longest_name - len(this_dir_label) + 2)),
                     )
                 )
             else:
@@ -291,7 +298,8 @@ class PathPicker:
                 tokens.append(
                     (
                         combined_class,
-                        f"{prefix} {icon} {option.name:30}",
+                        f"{prefix} {icon} {option.name}"
+                        + " " * (longest_name - len(option.name)),
                     )
                 )
 
@@ -299,6 +307,7 @@ class PathPicker:
 
         # remove the trailing \n
         tokens.pop()
+
         return tokens
 
     def __pt_container__(self):

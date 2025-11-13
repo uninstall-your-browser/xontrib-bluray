@@ -6,28 +6,15 @@ from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.styles import Style, merge_styles
+from prompt_toolkit.styles import merge_styles
 from xonsh.built_ins import XonshSession
 from xonsh.events import events
 from xonsh.prompt.base import PromptFields
 from xonsh.shells.ptk_shell import PromptToolkitShell
 
-from xontrib_bluray import dialog
+from xontrib_bluray import constants, dialog
 from xontrib_bluray.constants import STATE_FILE
 from xontrib_bluray.path_picker import PathPickerDialog
-
-style = Style.from_dict(
-    {
-        "dialog.body": "fg:white bg:ansidefault",
-        "frame.label": "royalblue",
-        "list.dir": "#9595ea",
-        "list.dir.hidden": "#5555dd",
-        "list.thisdir": "crimson",
-        "list.file": "darkgray",
-        "list.file.hidden": "gray",
-        "list.selected": "orangered",
-    }
-)
 
 
 def _load_xontrib_(xsh: XonshSession, **_):
@@ -47,7 +34,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
         def show_pathpicker(event: KeyPressEvent):
             nonlocal added_styles
             if not added_styles:
-                get_app().style = merge_styles([get_app().style, style])
+                get_app().style = merge_styles([get_app().style, constants.style])
                 added_styles = True
 
             async def coro():
