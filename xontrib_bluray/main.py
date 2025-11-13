@@ -13,6 +13,7 @@ from xonsh.prompt.base import PromptFields
 from xonsh.shells.ptk_shell import PromptToolkitShell
 
 from xontrib_bluray import dialog
+from xontrib_bluray.constants import STATE_FILE
 from xontrib_bluray.path_picker import PathPickerDialog
 
 style = Style.from_dict(
@@ -30,6 +31,8 @@ style = Style.from_dict(
 
 
 def _load_xontrib_(xsh: XonshSession, **_):
+    STATE_FILE.parent.mkdir(exist_ok=True, parents=True)
+
     @events.on_ptk_create
     def custom_keybindings(bindings, **kw):
         added_styles = False

@@ -1,5 +1,6 @@
 from asyncio import Future
 from collections.abc import Iterable
+from configparser import ConfigParser
 from pathlib import Path
 from typing import override
 
@@ -9,15 +10,36 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import FormattedTextControl, HSplit, Window, WindowAlign
 from prompt_toolkit.widgets import Dialog, Label
 
+from xontrib_bluray.constants import STATE_FILE
+
 
 def is_dotfile(path: Path) -> bool:
     return path.name.startswith(".")
 
 
-class PathPicker:
-    show_dotfiles = True
+def read_show_dotfiles_state() -> bool:
+    if not STATE_FILE.exists():
+        return True
 
+    state = ConfigParser()
+    state.read(STATE_FILE)
+    if state.has_section("state"):
+        return state["state"].getboolean("show_dotfiles", True)
+    else:
+        return True
+
+
+def write_show_dotfiles_state(show: bool):
+    state = ConfigParser()
+    state["state"] = {"show_dotfiles": show}
+    with open(STATE_FILE, "w") as file:
+        state.write(file)
+
+
+class PathPicker:
     def __init__(self):
+        self.show_dotfiles = read_show_dotfiles_state()
+
         self.kb = KeyBindings()
         self.bottom_bar = Label("", style="grey italic", align=WindowAlign.RIGHT)
         self.current_dir = Path(".").absolute()
@@ -161,6 +183,7 @@ class PathPicker:
         self.show_dotfiles = not self.show_dotfiles
         self._update_options_list(self.current_dir)
         self._update_bottom_bar()
+        write_show_dotfiles_state(self.show_dotfiles)
 
         if selection in self.options:
             # If the selected is still in the list, re-select it
