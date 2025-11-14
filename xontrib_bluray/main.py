@@ -86,7 +86,7 @@ def run():
     print("Running for debugging")
 
     # Set xonsh up and load the xontrib
-    setup(xontribs=["bluray"], shell_type="prompt_toolkit")
+    setup(shell_type="prompt_toolkit")
     _load_xontrib_(XSH)
     # Run the main command loop
     XSH.shell.cmdloop()
