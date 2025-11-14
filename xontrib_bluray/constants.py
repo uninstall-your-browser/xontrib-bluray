@@ -16,3 +16,5 @@ style = Style.from_dict(
         "list.selected": "bg:white fg:black",
     }
 )
+MAX_HEIGHT = 20
+MAX_CONTENT_HEIGHT = MAX_HEIGHT - 3

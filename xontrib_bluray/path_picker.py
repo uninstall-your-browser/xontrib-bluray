@@ -10,7 +10,7 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import FormattedTextControl, HSplit, Window, WindowAlign
 from prompt_toolkit.widgets import Dialog, Label
 
-from xontrib_bluray.constants import STATE_FILE
+from xontrib_bluray.constants import MAX_CONTENT_HEIGHT, STATE_FILE
 
 
 def is_dotfile(path: Path) -> bool:
@@ -48,6 +48,7 @@ class PathPicker:
         self.options: list[Path]
         self._update_options_list(self.current_dir)
         self.selected_option = 0
+        self.list_offset = 0
         self.old_selected_options: dict[Path, int] = {}
 
         kb = self.kb
@@ -92,10 +93,12 @@ class PathPicker:
                 return
 
             self.selected_option = len(self.options) - 1
+            self.list_offset = len(self.options) - MAX_CONTENT_HEIGHT
 
         @kb.add("home")
         def _(event):
             self.selected_option = 0
+            self.list_offset = 0
 
         @kb.add("~")
         def _(event):
@@ -119,6 +122,7 @@ class PathPicker:
             return
 
         self.selected_option = (self.selected_option + direction) % len(self.options)
+        self._update_list_offset()
 
     def _navigate_home(self):
         new_dir = Path.home()
@@ -138,6 +142,7 @@ class PathPicker:
             new_dir, index_of_current_item_in_parent
         )
         self.current_dir = new_dir
+        self._update_list_offset()
 
     def _navigate_up(self):
         new_dir = self.current_dir.parent
@@ -147,17 +152,17 @@ class PathPicker:
         except OSError:
             return
 
-        self.old_selected_options[self.current_dir] = self.selected_option
-
         index_of_current_item_in_parent = (
             self.options.index(self.current_dir)
             # Toggling dotfiles may cause the current directory to disappear
             if self.current_dir in self.options
             else 0
         )
-        self.selected_option = index_of_current_item_in_parent
 
+        self.old_selected_options[self.current_dir] = self.selected_option
+        self.selected_option = index_of_current_item_in_parent
         self.current_dir = new_dir
+        self._update_list_offset()
 
     def _navigate_down(self):
         if not self.options:
@@ -176,6 +181,7 @@ class PathPicker:
         self.old_selected_options[self.current_dir] = self.selected_option
         self.current_dir = new_dir
         self.selected_option = self.old_selected_options.get(self.current_dir, 0)
+        self._update_list_offset()
 
     def _toggle_dotfiles(self):
         old_options = self.options
@@ -224,6 +230,14 @@ class PathPicker:
                 # Fallback
                 self.selected_option = 0
 
+        self._update_list_offset()
+
+    def _update_list_offset(self):
+        if self.selected_option >= self.list_offset + MAX_CONTENT_HEIGHT - 1:
+            self.list_offset = self.selected_option - MAX_CONTENT_HEIGHT + 1
+        elif self.selected_option < self.list_offset:
+            self.list_offset = self.selected_option
+
     def _update_bottom_bar(self):
         dotfile_icon = "\uf441" if self.show_dotfiles else "\uf4c5"
 
@@ -259,14 +273,18 @@ class PathPicker:
         if not self.options:
             return [("#ff0000", "It's empty here!")]
 
+        tokens = []
         this_dir_label = "<this directory>"
-
+        # Only render the options which are visible, much more efficient for directories with tons of items in them
+        visible_options = self.options[
+            self.list_offset : self.list_offset + MAX_CONTENT_HEIGHT
+        ]
         longest_name = max(
-            max(len(option.name) for option in self.options), len(this_dir_label)
+            max(len(option.name) for option in visible_options), len(this_dir_label)
         )
 
-        tokens = []
-        for idx, option in enumerate(self.options):
+        for visible_idx, option in enumerate(visible_options):
+            idx = visible_idx + self.list_offset
             if idx == self.selected_option:
                 tokens.append(("[SetCursorPosition]", ""))
 
