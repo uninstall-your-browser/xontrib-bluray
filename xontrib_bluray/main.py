@@ -1,23 +1,24 @@
-import os
-from asyncio import ensure_future
-from pathlib import Path
-
-from prompt_toolkit.application import get_app
-from prompt_toolkit.filters import Condition
-from prompt_toolkit.key_binding import KeyPressEvent
-from prompt_toolkit.keys import Keys
-from prompt_toolkit.styles import merge_styles
 from xonsh.built_ins import XonshSession
-from xonsh.events import events
-from xonsh.prompt.base import PromptFields
-from xonsh.shells.ptk_shell import PromptToolkitShell
-
-from xontrib_bluray import constants, dialog
-from xontrib_bluray.constants import STATE_FILE
-from xontrib_bluray.path_picker import PathPickerDialog
 
 
 def _load_xontrib_(xsh: XonshSession, **_):
+    import os
+    from asyncio import ensure_future
+    from pathlib import Path
+
+    from prompt_toolkit.application import get_app
+    from prompt_toolkit.filters import Condition
+    from prompt_toolkit.key_binding import KeyPressEvent
+    from prompt_toolkit.keys import Keys
+    from prompt_toolkit.styles import merge_styles
+    from xonsh.events import events
+    from xonsh.prompt.base import PromptFields
+    from xonsh.shells.ptk_shell import PromptToolkitShell
+
+    from xontrib_bluray import constants, dialog
+    from xontrib_bluray.constants import STATE_FILE
+    from xontrib_bluray.path_picker import PathPickerDialog
+
     STATE_FILE.parent.mkdir(exist_ok=True, parents=True)
 
     @events.on_ptk_create
