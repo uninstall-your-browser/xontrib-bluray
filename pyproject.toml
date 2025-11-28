@@ -40,7 +40,7 @@ Code = "https://github.com/uninstall-your-browser/xontrib-bluray"
 
 [tool.poetry.dependencies]
 python = ">=3.13"
-xonsh = ">=0.19"
+xonsh = ">=0.20"
 prompt-toolkit = "^3.0.52"
 
 [tool.poetry.scripts]

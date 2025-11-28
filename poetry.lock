@@ -78,13 +78,13 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pytest"
-version = "9.0.0"
+version = "9.0.1"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pytest-9.0.0-py3-none-any.whl", hash = "sha256:e5ccdf10b0bac554970ee88fc1a4ad0ee5d221f8ef22321f9b7e4584e19d7f96"},
-    {file = "pytest-9.0.0.tar.gz", hash = "sha256:8f44522eafe4137b0f35c9ce3072931a788a21ee40a2ed279e817d3cc16ed21e"},
+    {file = "pytest-9.0.1-py3-none-any.whl", hash = "sha256:67be0030d194df2dfa7b556f2e56fb3c3315bd5c8822c6951162b92b32ce7dad"},
+    {file = "pytest-9.0.1.tar.gz", hash = "sha256:3e9c069ea73583e255c3b21cf46b8d3c56f6e3a1a8f6da94ccb0fcf57b9d73c8"},
 ]
 
 [package.dependencies]
@@ -110,23 +110,21 @@ files = [
 
 [[package]]
 name = "xonsh"
-version = "0.19.9"
+version = "0.20.0"
 description = "Python-powered shell. Full-featured and cross-platform."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.11"
 files = [
-    {file = "xonsh-0.19.9-py310-none-any.whl", hash = "sha256:8974981f04740b35a6f283aefe8e50b72b00e83cf4a871d6cc04500c0e3be2dd"},
-    {file = "xonsh-0.19.9-py311-none-any.whl", hash = "sha256:3c872d6f2f109ad3345af4476d2541a71d6ccdbbf2404b2fb2b95755c54e73ab"},
-    {file = "xonsh-0.19.9-py312-none-any.whl", hash = "sha256:ce0b91b8b25da835c0ffdb3f4aa4cf412ec5481f59a33ce9230cfa5fcbb5b0c8"},
-    {file = "xonsh-0.19.9-py313-none-any.whl", hash = "sha256:fa2b5f200413e92524b17da0bd6db08378e0ded12bbe81335bc94a03ea9fc670"},
-    {file = "xonsh-0.19.9-py39-none-any.whl", hash = "sha256:b136f62f444483de2a83a8005c3e5e4fb1005a1625a4e51a2d35f0a717a7ac6f"},
-    {file = "xonsh-0.19.9.tar.gz", hash = "sha256:4cab4c4d7a98aab7477a296f12bc008beccf3d090c6944f0b3375d80a574c37d"},
+    {file = "xonsh-0.20.0-py311-none-any.whl", hash = "sha256:65d27ba31d558f79010d6c652751449fd3ed4df1f1eda78040a6427fa0a0f03e"},
+    {file = "xonsh-0.20.0-py312-none-any.whl", hash = "sha256:3148900e67b9c2796bef6f2eda003b0a64d4c6f50a0db23324f786d9e1af9353"},
+    {file = "xonsh-0.20.0-py313-none-any.whl", hash = "sha256:c83daaf6eb2960180fc5a507459dbdf6c0d6d63e1733c43f4e43db77255c7278"},
+    {file = "xonsh-0.20.0.tar.gz", hash = "sha256:d44a50ee9f288ff96bd0456f0a38988ef6d4985637140ea793beeef5ec5d2d38"},
 ]
 
 [package.extras]
 bestshell = ["prompt-toolkit (>=3.0.29)", "pygments (>=2.2)"]
 dev = ["pre-commit", "re-ver", "tomli", "xonsh[doc,test]"]
-doc = ["furo", "livereload", "matplotlib", "myst-parser", "numpydoc", "psutil", "pyzmq", "runthis-sphinxext", "sphinx (>=3.1)", "tornado", "xonsh[bestshell]"]
+doc = ["furo", "matplotlib", "myst-parser", "numpydoc", "psutil", "pyzmq", "runthis-sphinxext", "sphinx (>=3.1)", "sphinx-autobuild", "sphinx-prompt", "tornado", "xonsh[bestshell]"]
 full = ["distro", "gnureadline", "setproctitle", "ujson", "xonsh[ptk,pygments]"]
 linux = ["distro"]
 mac = ["gnureadline"]
@@ -138,4 +136,4 @@ test = ["coverage (>=5.3.1)", "prompt-toolkit (>=3.0.29)", "pygments (>=2.2)", "
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.13"
-content-hash = "a8c434846431ef0329b059b10e5e9c145e18e3c839d85391a749739e20575e78"
+content-hash = "d9b170c19fa0ea59d85b394d9f5cfe72c0d67642546812cc567d4fd3e8c18420"
