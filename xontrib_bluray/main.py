@@ -102,13 +102,16 @@ def _load_xontrib_(xsh: XonshSession, **_):
 
                         # TODO use ../ instead of absolute path, with a limit of ../../../
                         # TODO if the cursor is inside a path in the prompt, make it replace that path instead of inserting again
+                        # TODO make it a bit smarter, detect existing quotes and spaces to not break the whole prompt because of unbalanced/unescaped quotes
 
                         current_dir = Path(".").absolute()
 
                         if new_dir.is_relative_to(current_dir):
                             new_dir = new_dir.relative_to(current_dir)
 
-                        event.current_buffer.insert_text(f' p"{new_dir}" ')
+                        event.current_buffer.insert_text(
+                            f' p"{str(new_dir).replace("\\", "\\\\").replace('"', '\\"')}" '
+                        )
                     finally:
                         _is_open = False
 
