@@ -1,3 +1,4 @@
+from prompt_toolkit.key_binding import KeyBindings
 from xonsh.built_ins import XonshSession
 
 
@@ -22,21 +23,24 @@ def _load_xontrib_(xsh: XonshSession, **_):
     STATE_FILE.parent.mkdir(exist_ok=True, parents=True)
 
     @events.on_ptk_create
-    def custom_keybindings(bindings, **kw):
+    def custom_keybindings(bindings: KeyBindings, **kw):
         added_styles = False
         _is_open = False
+
+        def ensure_added_styles():
+            nonlocal added_styles
+            if not added_styles:
+                get_app().style = merge_styles([get_app().style, constants.style])
+                added_styles = True
 
         @Condition
         def is_not_open():
             return not _is_open
 
         @bindings.add(Keys.ControlK, filter=is_not_open)
-        @bindings.add("c-y", filter=is_not_open)  # Mainly for pycharm
-        def show_pathpicker(event: KeyPressEvent):
-            nonlocal added_styles
-            if not added_styles:
-                get_app().style = merge_styles([get_app().style, constants.style])
-                added_styles = True
+        @bindings.add(Keys.ControlY, filter=is_not_open)  # Mainly for pycharm
+        def show_interactive_cd(event: KeyPressEvent):
+            ensure_added_styles()
 
             async def coro():
                 nonlocal event, _is_open
@@ -75,16 +79,55 @@ def _load_xontrib_(xsh: XonshSession, **_):
 
             ensure_future(coro())
 
+        @bindings.add(Keys.ControlJ, filter=is_not_open)
+        def show_interactive_path_picker(event: KeyPressEvent):
+            ensure_added_styles()
+
+            async def coro():
+                nonlocal event, _is_open
+
+                if not _is_open:
+                    _is_open = True
+                    try:
+                        new_dir: Path | None = await dialog.show_as_float(
+                            PathPickerDialog(),
+                            height=20,
+                            bottom=0,
+                            top=1,
+                            left=0,
+                        )
+
+                        if not new_dir:
+                            return
+
+                        # TODO use ../ instead of absolute path, with a limit of ../../../
+                        # TODO if the cursor is inside a path in the prompt, make it replace that path instead of inserting again
+
+                        current_dir = Path(".").absolute()
+
+                        if new_dir.is_relative_to(current_dir):
+                            new_dir = new_dir.relative_to(current_dir)
+
+                        event.current_buffer.insert_text(f' p"{new_dir}" ')
+                    finally:
+                        _is_open = False
+
+            ensure_future(coro())
+
 
 def run():
     """
     Start a xonsh shell from python for pycharm debugging
     """
+    import os
+
     from xonsh.built_ins import XSH
     from xonsh.main import setup
 
     print("Running for debugging")
 
+    # prevent writing history to disk
+    os.environ["XONSH_HISTORY_BACKEND"] = "dummy"
     # Set xonsh up and load the xontrib
     setup(shell_type="prompt_toolkit")
     _load_xontrib_(XSH)
