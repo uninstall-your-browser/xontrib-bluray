@@ -138,17 +138,22 @@ def _load_xontrib_(xsh: XonshSession, **_):
                             event.current_buffer.insert_text(f" {path_text}")
                             return
 
-                        prompt_args = split_prompt_to_args(event.current_buffer.text)
+                        prompt_text = event.current_buffer.text
+                        cursor_position = event.current_buffer.cursor_position
+                        prompt_args = split_prompt_to_args(prompt_text)
                         selected_arg: int | None = None
 
                         for idx, arg in enumerate(prompt_args):
-                            if event.current_buffer.cursor_position >= arg.position:
+                            if cursor_position >= arg.position:
                                 selected_arg = idx
 
                         assert selected_arg is not None
 
                         if prompt_args[selected_arg].text.isspace():
-                            event.current_buffer.insert_text(path_text)
+                            if cursor_position >= 1 and not prompt_text[cursor_position - 1].isspace():
+                                event.current_buffer.insert_text(f" {path_text}")
+                            else:
+                                event.current_buffer.insert_text(path_text)
                         else:
                             prompt_args[selected_arg].text = path_text
                             event.current_buffer.text = "".join(
