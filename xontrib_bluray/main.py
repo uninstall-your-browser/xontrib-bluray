@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+
 from prompt_toolkit.key_binding import KeyBindings
 from xonsh.built_ins import XonshSession
+
+from xontrib_bluray.custom_lexer import CustomLexer
 
 
 def _load_xontrib_(xsh: XonshSession, **_):
@@ -21,6 +25,22 @@ def _load_xontrib_(xsh: XonshSession, **_):
     from xontrib_bluray.path_picker import PathPickerDialog
 
     STATE_FILE.parent.mkdir(exist_ok=True, parents=True)
+
+    @dataclass
+    class PromptArg:
+        position: int
+        text: str
+
+    def split_prompt_to_args(prompt: str) -> list[PromptArg]:
+        split_prompt = CustomLexer(tolerant=False, pymode=False).split(prompt)
+        cumulative_length = 0
+        result = []
+
+        for split in split_prompt:
+            result.append(PromptArg(position=cumulative_length, text=split))
+            cumulative_length += len(split)
+
+        return result
 
     @events.on_ptk_create
     def custom_keybindings(bindings: KeyBindings, **kw):
@@ -101,17 +121,40 @@ def _load_xontrib_(xsh: XonshSession, **_):
                             return
 
                         # TODO use ../ instead of absolute path, with a limit of ../../../
-                        # TODO if the cursor is inside a path in the prompt, make it replace that path instead of inserting again
-                        # TODO make it a bit smarter, detect existing quotes and spaces to not break the whole prompt because of unbalanced/unescaped quotes
 
                         current_dir = Path(".").absolute()
 
                         if new_dir.is_relative_to(current_dir):
                             new_dir = new_dir.relative_to(current_dir)
 
-                        event.current_buffer.insert_text(
-                            f' p"{str(new_dir).replace("\\", "\\\\").replace('"', '\\"')}" '
-                        )
+                        path_text = f'p"{str(new_dir).replace("\\", "\\\\").replace('"', '\\"')}"'
+
+                        if event.current_buffer.cursor_position == 0:
+                            event.current_buffer.insert_text(f"{path_text} ")
+                            return
+                        elif event.current_buffer.cursor_position == len(
+                            event.current_buffer.text
+                        ):
+                            event.current_buffer.insert_text(f" {path_text}")
+                            return
+
+                        prompt_args = split_prompt_to_args(event.current_buffer.text)
+                        selected_arg: int | None = None
+
+                        for idx, arg in enumerate(prompt_args):
+                            if event.current_buffer.cursor_position >= arg.position:
+                                selected_arg = idx
+
+                        assert selected_arg is not None
+
+                        if prompt_args[selected_arg].text.isspace():
+                            event.current_buffer.insert_text(path_text)
+                        else:
+                            prompt_args[selected_arg].text = path_text
+                            event.current_buffer.text = "".join(
+                                arg.text for arg in prompt_args
+                            )
+
                     finally:
                         _is_open = False
 
