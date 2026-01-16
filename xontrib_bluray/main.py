@@ -155,11 +155,13 @@ def _load_xontrib_(xsh: XonshSession, **_):
                             else:
                                 event.current_buffer.insert_text(path_text)
                         else:
+                            prev_len = len(prompt_text)
                             prompt_args[selected_arg].text = path_text
                             event.current_buffer.text = "".join(
                                 arg.text for arg in prompt_args
                             )
-
+                            # Move the cursor back
+                            event.current_buffer.cursor_position -= prev_len - len(event.current_buffer.text)
                     finally:
                         _is_open = False
 
