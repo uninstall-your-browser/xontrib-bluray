@@ -128,18 +128,16 @@ def _load_xontrib_(xsh: XonshSession, **_):
                             new_dir = new_dir.relative_to(current_dir)
 
                         path_text = f'p"{str(new_dir).replace("\\", "\\\\").replace('"', '\\"')}"'
+                        prompt_text = event.current_buffer.text
+                        cursor_position = event.current_buffer.cursor_position
 
-                        if event.current_buffer.cursor_position == 0:
+                        if cursor_position == 0:
                             event.current_buffer.insert_text(f"{path_text} ")
                             return
-                        elif event.current_buffer.cursor_position == len(
-                            event.current_buffer.text
-                        ):
+                        elif cursor_position == len(event.current_buffer.text):
                             event.current_buffer.insert_text(f" {path_text}")
                             return
 
-                        prompt_text = event.current_buffer.text
-                        cursor_position = event.current_buffer.cursor_position
                         prompt_args = split_prompt_to_args(prompt_text)
                         selected_arg: int | None = None
 
@@ -150,10 +148,26 @@ def _load_xontrib_(xsh: XonshSession, **_):
                         assert selected_arg is not None
 
                         if prompt_args[selected_arg].text.isspace():
-                            if cursor_position >= 1 and not prompt_text[cursor_position - 1].isspace():
+                            if (
+                                cursor_position >= 1
+                                and not prompt_text[cursor_position - 1].isspace()
+                            ):
                                 event.current_buffer.insert_text(f" {path_text}")
                             else:
                                 event.current_buffer.insert_text(path_text)
+                        elif (
+                            cursor_position >= 1
+                            and prompt_text[cursor_position - 1 : cursor_position + 1]
+                            == " -"
+                        ):
+                            """
+                            for the case of inserting when the cursor is positioned like this
+                            somecommand --arg
+                                        ^ cursor is here
+                            This would normally replace --arg, but I found this to be really confusing during testing,
+                            and I think inserting infront of --arg is more intuitive
+                            """
+                            event.current_buffer.insert_text(f"{path_text} ")
                         else:
                             prev_len = len(prompt_text)
                             prompt_args[selected_arg].text = path_text
@@ -161,7 +175,9 @@ def _load_xontrib_(xsh: XonshSession, **_):
                                 arg.text for arg in prompt_args
                             )
                             # Move the cursor back
-                            event.current_buffer.cursor_position -= prev_len - len(event.current_buffer.text)
+                            event.current_buffer.cursor_position -= prev_len - len(
+                                event.current_buffer.text
+                            )
                     finally:
                         _is_open = False
 
