@@ -43,24 +43,24 @@ def _load_xontrib_(xsh: XonshSession, **_):
         prompt_args: list[str], cursor_position: int
     ) -> SelectedArg:
         arg_position: int = -1
+        is_inserting = True
 
         current_arg_start_position = 0
         for idx, arg in enumerate(prompt_args):
-            if cursor_position > current_arg_start_position:
+            if cursor_position > current_arg_start_position or (
+                arg.isspace() and cursor_position == current_arg_start_position
+            ):
                 arg_position = idx
+                is_inserting = arg.isspace()
             elif cursor_position <= current_arg_start_position:
                 break
 
             current_arg_start_position += len(arg)
-
-        # Check if the cursor position is at the end of the last argument
-        if cursor_position == current_arg_start_position:
-            arg_position = len(prompt_args)
-            # If it is, we will be inserting
-            is_inserting = True
         else:
-            # If the cursor is at the start of the line, we will be inserting, otherwise we will be replacing
-            is_inserting = arg_position == -1
+            if cursor_position == current_arg_start_position:
+                arg_position = len(prompt_args)
+                # If it is, we will be inserting
+                is_inserting = True
 
         return SelectedArg(is_inserting=is_inserting, position=arg_position)
 
@@ -69,29 +69,46 @@ def _load_xontrib_(xsh: XonshSession, **_):
         new_cursor_position: int
 
     def put_arg_in_prompt(
-        *, prompt_args: list[str], selected_arg: SelectedArg, new_arg: str
+        *,
+        prompt_args: list[str],
+        selected_arg: SelectedArg,
+        new_arg: str,
+        cursor_position: int,
     ) -> PutResult:
         arg_position = selected_arg.position
         is_inserting = selected_arg.is_inserting
 
-        if is_inserting:
+        if arg_position == -1:
+            prompt_args.insert(0, new_arg + " ")
+        elif arg_position == len(prompt_args):
+            prompt_args.append(" " + new_arg)
+        elif is_inserting:
+            insertion_position = cursor_position - sum(
+                len(arg) for arg in prompt_args[:arg_position]
+            )
+
+            arg_text = prompt_args[arg_position]
+            text_before = arg_text[:insertion_position]
+            text_after = arg_text[insertion_position:]
+            prompt_args[arg_position] = new_arg
+
             # Ensure that the new arg is followed by a space
             if arg_position < len(prompt_args):
-                if not prompt_args[arg_position + 1].isspace():
-                    prompt_args.insert(arg_position, " ")
+                if len(text_after) > 0:
+                    prompt_args.insert(arg_position + 1, text_after)
+                # len check is for short-circuiting and preventing out of bounds error!
+                elif len(text_after) == 0 or not text_after[0].isspace():
+                    prompt_args[arg_position + 1] = " " + prompt_args[arg_position + 1]
 
             # Ensure that the new arg is preceded by a space
             if arg_position > 0:
-                if not prompt_args[arg_position - 1].isspace():
+                if len(text_before) > 0:
+                    prompt_args.insert(arg_position, text_before)
+                    arg_position += 1
+                # len check is for short-circuiting and preventing out of bounds error!
+                elif len(text_before) == 0 or not text_before[-1].isspace():
                     prompt_args.insert(arg_position, " ")
                     arg_position += 1
-
-        if arg_position == -1:
-            prompt_args.insert(0, new_arg)
-        elif arg_position == len(prompt_args):
-            prompt_args.append(new_arg)
-        elif is_inserting:
-            prompt_args.insert(arg_position, new_arg)
         else:
             prompt_args[arg_position] = new_arg
 
@@ -234,6 +251,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
                             selected_arg=selected_arg,
                             prompt_args=prompt_args,
                             new_arg=path_text,
+                            cursor_position=cursor_position,
                         )
                         event.current_buffer.text = put_result.new_prompt
                         event.current_buffer.cursor_position = (
