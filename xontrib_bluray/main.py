@@ -1,19 +1,16 @@
-from dataclasses import dataclass
-
-from prompt_toolkit.key_binding import KeyBindings
 from xonsh.built_ins import XonshSession
-
-from xontrib_bluray.custom_lexer import CustomLexer
 
 
 def _load_xontrib_(xsh: XonshSession, **_):
     import os
+    import re
     from asyncio import ensure_future
     from pathlib import Path
+    from typing import NamedTuple
 
     from prompt_toolkit.application import get_app
     from prompt_toolkit.filters import Condition
-    from prompt_toolkit.key_binding import KeyPressEvent
+    from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
     from prompt_toolkit.keys import Keys
     from prompt_toolkit.styles import merge_styles
     from xonsh.events import events
@@ -22,25 +19,88 @@ def _load_xontrib_(xsh: XonshSession, **_):
 
     from xontrib_bluray import constants, dialog
     from xontrib_bluray.constants import STATE_FILE
+    from xontrib_bluray.custom_lexer import CustomLexer
     from xontrib_bluray.path_picker import PathPickerDialog
 
     STATE_FILE.parent.mkdir(exist_ok=True, parents=True)
 
-    @dataclass
-    class PromptArg:
-        position: int
-        text: str
+    path_string_pattern = re.compile("^[pf]?['\"]?(.+?)[\"']?$")
 
-    def split_prompt_to_args(prompt: str) -> list[PromptArg]:
+    def split_prompt_to_args(prompt: str) -> list[str]:
         split_prompt = CustomLexer(tolerant=False, pymode=False).split(prompt)
-        cumulative_length = 0
         result = []
 
         for split in split_prompt:
-            result.append(PromptArg(position=cumulative_length, text=split))
-            cumulative_length += len(split)
+            result.append(split)
 
         return result
+
+    class SelectedArg(NamedTuple):
+        position: int
+        is_inserting: bool
+
+    def get_selected_prompt_arg(
+        prompt_args: list[str], cursor_position: int
+    ) -> SelectedArg:
+        arg_position: int = -1
+
+        current_arg_start_position = 0
+        for idx, arg in enumerate(prompt_args):
+            if cursor_position > current_arg_start_position:
+                arg_position = idx
+            elif cursor_position <= current_arg_start_position:
+                break
+
+            current_arg_start_position += len(arg)
+
+        # Check if the cursor position is at the end of the last argument
+        if cursor_position == current_arg_start_position:
+            arg_position = len(prompt_args)
+            # If it is, we will be inserting
+            is_inserting = True
+        else:
+            # If the cursor is at the start of the line, we will be inserting, otherwise we will be replacing
+            is_inserting = arg_position == -1
+
+        return SelectedArg(is_inserting=is_inserting, position=arg_position)
+
+    class PutResult(NamedTuple):
+        new_prompt: str
+        new_cursor_position: int
+
+    def put_arg_in_prompt(
+        *, prompt_args: list[str], selected_arg: SelectedArg, new_arg: str
+    ) -> PutResult:
+        arg_position = selected_arg.position
+        is_inserting = selected_arg.is_inserting
+
+        if is_inserting:
+            # Ensure that the new arg is followed by a space
+            if arg_position < len(prompt_args):
+                if not prompt_args[arg_position + 1].isspace():
+                    prompt_args.insert(arg_position, " ")
+
+            # Ensure that the new arg is preceded by a space
+            if arg_position > 0:
+                if not prompt_args[arg_position - 1].isspace():
+                    prompt_args.insert(arg_position, " ")
+                    arg_position += 1
+
+        if arg_position == -1:
+            prompt_args.insert(0, new_arg)
+        elif arg_position == len(prompt_args):
+            prompt_args.append(new_arg)
+        elif is_inserting:
+            prompt_args.insert(arg_position, new_arg)
+        else:
+            prompt_args[arg_position] = new_arg
+
+        return PutResult(
+            new_cursor_position=sum(
+                len(arg) for arg in prompt_args[: arg_position + 1]
+            ),
+            new_prompt="".join(prompt_args),
+        )
 
     @events.on_ptk_create
     def custom_keybindings(bindings: KeyBindings, **kw):
@@ -58,7 +118,6 @@ def _load_xontrib_(xsh: XonshSession, **_):
             return not _is_open
 
         @bindings.add(Keys.ControlK, filter=is_not_open)
-        @bindings.add(Keys.ControlY, filter=is_not_open)  # Mainly for pycharm
         def show_interactive_cd(event: KeyPressEvent):
             ensure_added_styles()
 
@@ -99,9 +158,37 @@ def _load_xontrib_(xsh: XonshSession, **_):
 
             ensure_future(coro())
 
-        @bindings.add(Keys.ControlJ, filter=is_not_open)
+        @bindings.add(Keys.ControlY, filter=is_not_open)
         def show_interactive_path_picker(event: KeyPressEvent):
             ensure_added_styles()
+
+            def create_path_picker_dialog(
+                prompt_args: list[str], selected_arg: SelectedArg
+            ) -> PathPickerDialog:
+                current_dir = None
+                selected_file = None
+
+                if not selected_arg.is_inserting:
+                    selected_path_match = path_string_pattern.match(
+                        prompt_args[selected_arg.position]
+                    )
+                    if selected_path_match:
+                        try:
+                            selected_path = Path(
+                                selected_path_match.group(1)
+                            ).absolute()
+                        except ValueError:
+                            pass
+                        else:
+                            if selected_path.exists():
+                                selected_file = selected_path
+
+                            if selected_path.parent.exists():
+                                current_dir = selected_path.parent
+
+                return PathPickerDialog(
+                    current_dir=current_dir, selected_item=selected_file
+                )
 
             async def coro():
                 nonlocal event, _is_open
@@ -109,8 +196,15 @@ def _load_xontrib_(xsh: XonshSession, **_):
                 if not _is_open:
                     _is_open = True
                     try:
+                        prompt_text = event.current_buffer.text
+                        cursor_position = event.current_buffer.cursor_position
+                        prompt_args = split_prompt_to_args(prompt_text)
+                        selected_arg = get_selected_prompt_arg(
+                            prompt_args, cursor_position
+                        )
+
                         new_dir: Path | None = await dialog.show_as_float(
-                            PathPickerDialog(),
+                            create_path_picker_dialog(prompt_args, selected_arg),
                             height=20,
                             bottom=0,
                             top=1,
@@ -128,56 +222,16 @@ def _load_xontrib_(xsh: XonshSession, **_):
                             new_dir = new_dir.relative_to(current_dir)
 
                         path_text = f'p"{str(new_dir).replace("\\", "\\\\").replace('"', '\\"')}"'
-                        prompt_text = event.current_buffer.text
-                        cursor_position = event.current_buffer.cursor_position
 
-                        if cursor_position == 0:
-                            event.current_buffer.insert_text(f"{path_text} ")
-                            return
-                        elif cursor_position == len(event.current_buffer.text):
-                            event.current_buffer.insert_text(f" {path_text}")
-                            return
-
-                        prompt_args = split_prompt_to_args(prompt_text)
-                        selected_arg: int | None = None
-
-                        for idx, arg in enumerate(prompt_args):
-                            if cursor_position >= arg.position:
-                                selected_arg = idx
-
-                        assert selected_arg is not None
-
-                        if prompt_args[selected_arg].text.isspace():
-                            if (
-                                cursor_position >= 1
-                                and not prompt_text[cursor_position - 1].isspace()
-                            ):
-                                event.current_buffer.insert_text(f" {path_text}")
-                            else:
-                                event.current_buffer.insert_text(path_text)
-                        elif (
-                            cursor_position >= 1
-                            and prompt_text[cursor_position - 1 : cursor_position + 1]
-                            == " -"
-                        ):
-                            """
-                            for the case of inserting when the cursor is positioned like this
-                            somecommand --arg
-                                        ^ cursor is here
-                            This would normally replace --arg, but I found this to be really confusing during testing,
-                            and I think inserting infront of --arg is more intuitive
-                            """
-                            event.current_buffer.insert_text(f"{path_text} ")
-                        else:
-                            prev_len = len(prompt_text)
-                            prompt_args[selected_arg].text = path_text
-                            event.current_buffer.text = "".join(
-                                arg.text for arg in prompt_args
-                            )
-                            # Move the cursor back
-                            event.current_buffer.cursor_position -= prev_len - len(
-                                event.current_buffer.text
-                            )
+                        put_result = put_arg_in_prompt(
+                            selected_arg=selected_arg,
+                            prompt_args=prompt_args,
+                            new_arg=path_text,
+                        )
+                        event.current_buffer.text = put_result.new_prompt
+                        event.current_buffer.cursor_position = (
+                            put_result.new_cursor_position
+                        )
                     finally:
                         _is_open = False
 

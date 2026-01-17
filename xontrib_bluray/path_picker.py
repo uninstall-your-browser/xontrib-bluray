@@ -38,16 +38,20 @@ def write_show_dotfiles_state(show: bool):
 
 
 class PathPicker:
-    def __init__(self):
+    def __init__(
+        self, current_dir: Path | None = None, selected_item: Path | None = None
+    ):
         self.show_dotfiles = read_show_dotfiles_state()
 
         self.kb = KeyBindings()
         self.bottom_bar = Label("", style="grey italic", align=WindowAlign.RIGHT)
-        self.current_dir = Path(".").absolute()
+        self.current_dir = current_dir or Path(".").absolute()
         self.future = Future[Path | None]()
         self.options: list[Path]
         self._update_options_list(self.current_dir)
-        self.selected_option = 0
+        self.selected_option = (
+            0 if selected_item is None else self.options.index(selected_item)
+        )
         self.list_offset = 0
         self.old_selected_options: dict[Path, int] = {}
 
@@ -333,8 +337,10 @@ class PathPicker:
 
 
 class PathPickerDialog(PathPicker):
-    def __init__(self):
-        super().__init__()
+    def __init__(
+        self, current_dir: Path | None = None, selected_item: Path | None = None
+    ):
+        super().__init__(current_dir=current_dir, selected_item=selected_item)
         self.dialog = Dialog(
             self.container,
             title=str(self.current_dir),
