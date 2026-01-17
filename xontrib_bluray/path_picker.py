@@ -39,7 +39,11 @@ def write_show_dotfiles_state(show: bool):
 
 class PathPicker:
     def __init__(
-        self, current_dir: Path | None = None, selected_item: Path | None = None
+        self,
+        *,
+        current_dir: Path | None = None,
+        selected_item: Path | None = None,
+        accept_files: bool = True,
     ):
         self.show_dotfiles = read_show_dotfiles_state()
 
@@ -54,6 +58,7 @@ class PathPicker:
         )
         self.list_offset = 0
         self.old_selected_options: dict[Path, int] = {}
+        self.accept_files = accept_files
 
         kb = self.kb
 
@@ -267,8 +272,11 @@ class PathPicker:
         self.options.insert(0, new_dir)
 
     def _selected(self):
-        # TODO: need a way to only allow directories or files to be selected
-        self.future.set_result(self.options[self.selected_option])
+        # TODO: show a message if the dialog doesn't accept files
+        selected = self.options[self.selected_option]
+
+        if self.accept_files or not selected.is_file():
+            self.future.set_result(selected)
 
     def _cancelled(self):
         self.future.set_result(None)
@@ -343,8 +351,13 @@ class PathPickerDialog(PathPicker):
         *,
         current_dir: Path | None = None,
         selected_item: Path | None = None,
+        accept_files: bool = True,
     ):
-        super().__init__(current_dir=current_dir, selected_item=selected_item)
+        super().__init__(
+            current_dir=current_dir,
+            selected_item=selected_item,
+            accept_files=accept_files,
+        )
         self._title = title
         self.dialog = Dialog(
             self.container,

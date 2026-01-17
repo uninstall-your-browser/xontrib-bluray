@@ -128,7 +128,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
                     _is_open = True
                     try:
                         new_dir: Path | None = await dialog.show_as_float(
-                            PathPickerDialog("Change directory"),
+                            PathPickerDialog("Change directory", accept_files=False),
                             height=20,
                             bottom=0,
                             top=1,
