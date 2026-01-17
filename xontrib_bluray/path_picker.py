@@ -338,11 +338,17 @@ class PathPicker:
 
 class PathPickerDialog(PathPicker):
     def __init__(
-        self, current_dir: Path | None = None, selected_item: Path | None = None
+        self,
+        title: str,
+        *,
+        current_dir: Path | None = None,
+        selected_item: Path | None = None,
     ):
         super().__init__(current_dir=current_dir, selected_item=selected_item)
+        self._title = title
         self.dialog = Dialog(
             self.container,
+            # TODO make this shorten the path if it's too long
             title=str(self.current_dir),
             modal=True,
         )
@@ -364,4 +370,11 @@ class PathPickerDialog(PathPicker):
 
     @override
     def __pt_container__(self):
-        return self.dialog
+        return HSplit(
+            [
+                Label(
+                    self._title, style="class:selection-mode", align=WindowAlign.CENTER
+                ),
+                self.dialog,
+            ]
+        )

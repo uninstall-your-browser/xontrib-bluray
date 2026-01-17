@@ -14,6 +14,7 @@ style = Style.from_dict(
         "list.file.hidden": "#666666",
         # "list.selected": "orangered",
         "list.selected": "bg:white fg:black",
+        "selection-mode": "SpringGreen",
     }
 )
 MAX_HEIGHT = 20

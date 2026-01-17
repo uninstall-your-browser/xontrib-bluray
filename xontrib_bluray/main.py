@@ -128,7 +128,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
                     _is_open = True
                     try:
                         new_dir: Path | None = await dialog.show_as_float(
-                            PathPickerDialog(),
+                            PathPickerDialog("Change directory"),
                             height=20,
                             bottom=0,
                             top=1,
@@ -169,6 +169,8 @@ def _load_xontrib_(xsh: XonshSession, **_):
                 selected_file = None
 
                 if not selected_arg.is_inserting:
+                    title = "Choose a path to replace this path which is somehow invalid? Wtf are you doing man"
+
                     selected_path_match = path_string_pattern.match(
                         prompt_args[selected_arg.position]
                     )
@@ -186,8 +188,13 @@ def _load_xontrib_(xsh: XonshSession, **_):
                             if selected_path.parent.exists():
                                 current_dir = selected_path.parent
 
+                            # TODO make this shorten the path if it's too long instead of just using the file name
+                            title = f"Replace {selected_path.name}"
+                else:
+                    title = "Insert a path"
+
                 return PathPickerDialog(
-                    current_dir=current_dir, selected_item=selected_file
+                    current_dir=current_dir, selected_item=selected_file, title=title
                 )
 
             async def coro():
