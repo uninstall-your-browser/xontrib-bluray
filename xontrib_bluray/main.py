@@ -44,8 +44,8 @@ def _load_xontrib_(xsh: XonshSession, **_):
     ) -> SelectedArg:
         arg_position: int = -1
         is_inserting = True
-
         current_arg_start_position = 0
+
         for idx, arg in enumerate(prompt_args):
             if cursor_position > current_arg_start_position or (
                 arg.isspace() and cursor_position == current_arg_start_position
@@ -57,7 +57,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
 
             current_arg_start_position += len(arg)
         else:
-            if cursor_position == current_arg_start_position:
+            if cursor_position >= current_arg_start_position:
                 arg_position = len(prompt_args)
                 # If it is, we will be inserting
                 is_inserting = True
