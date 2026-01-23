@@ -78,8 +78,11 @@ def _load_xontrib_(xsh: XonshSession, **_):
         arg_position = selected_arg.position
         is_inserting = selected_arg.is_inserting
 
-        if arg_position == -1 or len(prompt_args) == 0:
-            prompt_args.insert(0, new_arg + " " if len(prompt_args) != 0 else "")
+        if len(prompt_args) == 0:
+            # Must not use .insert if the array is empty
+            prompt_args.append(new_arg)
+        elif arg_position == -1:
+            prompt_args.insert(0, new_arg + " ")
         elif arg_position == len(prompt_args):
             prompt_args.append(" " + new_arg)
         elif is_inserting:
