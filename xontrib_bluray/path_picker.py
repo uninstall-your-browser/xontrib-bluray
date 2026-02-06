@@ -4,13 +4,24 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import override
 
+from prompt_toolkit.application import get_app
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout import FormattedTextControl, HSplit, Window, WindowAlign
+from prompt_toolkit.layout import (
+    ConditionalContainer,
+    Dimension,
+    FormattedTextControl,
+    HSplit,
+    VSplit,
+    Window,
+    WindowAlign,
+)
 from prompt_toolkit.widgets import Dialog, Label
 
-from xontrib_bluray.constants import MAX_CONTENT_HEIGHT, STATE_FILE
+from xontrib_bluray.constants import MAX_CONTENT_HEIGHT, MIN_WIDTH, STATE_FILE
+from xontrib_bluray.custom_text_area import FocusStyleableTextArea
 
 
 def is_dotfile(path: Path) -> bool:
@@ -48,7 +59,7 @@ class PathPicker:
         self.show_dotfiles = read_show_dotfiles_state()
 
         self.kb = KeyBindings()
-        self.bottom_bar = Label("", style="grey italic", align=WindowAlign.RIGHT)
+        self.bottom_bar = Label("", align=WindowAlign.RIGHT)
         self.current_dir = current_dir or Path(".").absolute()
         self.future = Future[Path | None]()
         self.options: list[Path]
@@ -60,36 +71,52 @@ class PathPicker:
         self.old_selected_options: dict[Path, int] = {}
         self.accept_files = accept_files
 
+        textarea_kb = KeyBindings()
+        self.filter_textarea = FocusStyleableTextArea(
+            focusable=True,
+            dont_extend_width=False,
+            dont_extend_height=True,
+            height=1,
+            multiline=False,
+        )
+        self.filter_textarea.control.key_bindings = textarea_kb
+        self.is_filtering = False
+
         kb = self.kb
 
         @kb.add("up")
+        @textarea_kb.add("up")
         def _(event):
             self._move_cursor(-1)
 
         @kb.add("down")
+        @textarea_kb.add("down")
         def _(event):
             self._move_cursor(1)
 
         @kb.add("left")
+        @textarea_kb.add("left")
         def _(event):
             self._navigate_up()
+            self._clear_filter()
 
         @kb.add("right")
+        @textarea_kb.add("right")
         def _(event):
             self._navigate_down()
+            self._clear_filter()
 
         @kb.add("enter")
+        @textarea_kb.add("enter")
         def _(event):
             self._selected()
 
-        @kb.add(
-            Keys.Escape, eager=True
-        )  # Not sure why, but esc specifically has a weird delay for closing it
+        @kb.add(Keys.Escape, eager=True)
         @kb.add(Keys.Backspace)
         @kb.add("q")
         @kb.add("c-q")
         @kb.add("c-c")
-        def _(event):
+        def _(event: KeyPressEvent):
             self._cancelled()
 
         @kb.add(".")
@@ -112,17 +139,42 @@ class PathPicker:
         @kb.add("~")
         def _(event):
             self._navigate_home()
+            self._clear_filter()
+
+        @kb.add("/")
+        @textarea_kb.add("escape", eager=True)
+        def _(event: KeyPressEvent):
+            self._toggle_filtering()
+
+        self.main_window = Window(
+            FormattedTextControl(self._draw, focusable=True, key_bindings=kb),
+            always_hide_cursor=True,
+        )
+
+        @Condition
+        def _is_filtering():
+            return self.is_filtering
 
         self.container = HSplit(
             [
-                Window(
-                    FormattedTextControl(self._draw, focusable=True, key_bindings=kb),
-                    always_hide_cursor=True,
+                VSplit(
+                    [
+                        Label(" ", dont_extend_width=True, width=1),  # Spacer
+                        ConditionalContainer(
+                            self.filter_textarea,
+                            filter=_is_filtering,
+                            alternative_content=Label(
+                                "Press '/' to filter...", style="class:filter-hint"
+                            ),
+                        ),
+                        Label(" ", dont_extend_width=True, width=1),  # Spacer
+                    ],
                 ),
+                self.main_window,
                 self.bottom_bar,
-            ]
+            ],
+            width=Dimension(min=MIN_WIDTH),
         )
-
         self._update_bottom_bar()
 
     def _move_cursor(self, direction: int) -> None:
@@ -133,7 +185,22 @@ class PathPicker:
         self.selected_option = (self.selected_option + direction) % len(self.options)
         self._update_list_offset()
 
-    def _navigate_home(self):
+    def _toggle_filtering(self) -> None:
+        self.is_filtering = not self.is_filtering
+        app = get_app()
+
+        if self.is_filtering:
+            self._clear_filter()
+            app.layout.focus(self.filter_textarea)
+        else:
+            app.layout.focus(self.main_window)
+
+        self._update_bottom_bar()
+
+    def _clear_filter(self) -> None:
+        self.filter_textarea.text = ""
+
+    def _navigate_home(self) -> None:
         new_dir = Path.home()
 
         try:
@@ -153,7 +220,7 @@ class PathPicker:
         self.current_dir = new_dir
         self._update_list_offset()
 
-    def _navigate_up(self):
+    def _navigate_up(self) -> None:
         new_dir = self.current_dir.parent
 
         try:
@@ -173,7 +240,7 @@ class PathPicker:
         self.current_dir = new_dir
         self._update_list_offset()
 
-    def _navigate_down(self):
+    def _navigate_down(self) -> None:
         if not self.options:
             return
 
@@ -192,7 +259,7 @@ class PathPicker:
         self.selected_option = self.old_selected_options.get(self.current_dir, 0)
         self._update_list_offset()
 
-    def _toggle_dotfiles(self):
+    def _toggle_dotfiles(self) -> None:
         old_options = self.options
         old_selection = self.selected_option
         selection = self.options[self.selected_option]
@@ -241,18 +308,33 @@ class PathPicker:
 
         self._update_list_offset()
 
-    def _update_list_offset(self):
+    def _update_list_offset(self) -> None:
         if self.selected_option >= self.list_offset + MAX_CONTENT_HEIGHT - 1:
             self.list_offset = self.selected_option - MAX_CONTENT_HEIGHT + 1
         elif self.selected_option < self.list_offset:
             self.list_offset = self.selected_option
 
-    def _update_bottom_bar(self):
+    def _update_bottom_bar(self) -> None:
+        disabled_style = "class:bottom-bar.disabled"
         dotfile_icon = "\uf441" if self.show_dotfiles else "\uf4c5"
+        filter_icon = "\U000f0233" if self.is_filtering else "\U000f14f0"
 
-        self.bottom_bar.text = f"{dotfile_icon} Dotfiles"
+        self.bottom_bar.text = [
+            (
+                "class:bottom-bar.filtering" if self.is_filtering else disabled_style,
+                f"{filter_icon} Filter",
+            ),
+            (
+                "",
+                "  ",
+            ),
+            (
+                "class:bottom-bar.dotfiles" if self.show_dotfiles else disabled_style,
+                f"{dotfile_icon} Dotfiles",
+            ),
+        ]
 
-    def _update_options_list(self, new_dir: Path):
+    def _update_options_list(self, new_dir: Path) -> None:
         def dotfiles_filter(path: Path):
             if self.show_dotfiles:
                 return True
@@ -271,14 +353,14 @@ class PathPicker:
         # Add an option to select the current directory, always at the top of the list
         self.options.insert(0, new_dir)
 
-    def _selected(self):
+    def _selected(self) -> None:
         # TODO: show a message if the dialog doesn't accept files
         selected = self.options[self.selected_option]
 
         if self.accept_files or not selected.is_file():
             self.future.set_result(selected)
 
-    def _cancelled(self):
+    def _cancelled(self) -> None:
         self.future.set_result(None)
 
     def _draw(self) -> StyleAndTextTuples:
@@ -340,7 +422,10 @@ class PathPicker:
 
         return tokens
 
-    def __pt_container__(self):
+    def on_show(self) -> None:
+        get_app().layout.focus(self.container.children[1])
+
+    def __pt_container__(self) -> HSplit:
         return self.container
 
 

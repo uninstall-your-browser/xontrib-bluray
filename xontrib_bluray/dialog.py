@@ -46,8 +46,19 @@ async def show_as_float[T](
 
     focused_before = app.layout.current_window
     app.layout.focus(dialog)
-    result = await dialog.future
-    app.layout.focus(focused_before)
+
+    timeoutlen, ttimeoutlen = app.timeoutlen, app.ttimeoutlen
+    # Prevents there being a delay for the escape keypress handler: https://github.com/prompt-toolkit/python-prompt-toolkit/issues/1901
+    app.timeoutlen, app.ttimeoutlen = 0, 0
+
+    try:
+        if hasattr(dialog, "on_show"):
+            dialog.on_show()
+
+        result = await dialog.future
+    finally:
+        app.layout.focus(focused_before)
+        app.timeoutlen, app.ttimeoutlen = timeoutlen, ttimeoutlen
 
     if float_ in root_container.floats:
         root_container.floats.remove(float_)

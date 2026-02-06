@@ -58,13 +58,13 @@ files = [
 
 [[package]]
 name = "packaging"
-version = "25.0"
+version = "26.0"
 description = "Core utilities for Python packages"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"},
-    {file = "packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f"},
+    {file = "packaging-26.0-py3-none-any.whl", hash = "sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529"},
+    {file = "packaging-26.0.tar.gz", hash = "sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4"},
 ]
 
 [[package]]
@@ -133,13 +133,13 @@ dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "requests
 
 [[package]]
 name = "rich"
-version = "14.2.0"
+version = "14.3.2"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "rich-14.2.0-py3-none-any.whl", hash = "sha256:76bc51fe2e57d2b1be1f96c524b890b816e334ab4c1e45888799bfaab0021edd"},
-    {file = "rich-14.2.0.tar.gz", hash = "sha256:73ff50c7c0c1c77c8243079283f4edb376f0f6442433aecb8ce7e6d0b92d1fe4"},
+    {file = "rich-14.3.2-py3-none-any.whl", hash = "sha256:08e67c3e90884651da3239ea668222d19bea7b589149d8014a21c633420dbb69"},
+    {file = "rich-14.3.2.tar.gz", hash = "sha256:e712f11c1a562a11843306f5ed999475f09ac31ffb64281f73ab29ffdda8b3b8"},
 ]
 
 [package.dependencies]
@@ -151,26 +151,26 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "wcwidth"
-version = "0.2.14"
+version = "0.5.3"
 description = "Measures the displayed width of unicode strings in a terminal"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 files = [
-    {file = "wcwidth-0.2.14-py2.py3-none-any.whl", hash = "sha256:a7bb560c8aee30f9957e5f9895805edd20602f2d7f720186dfd906e82b4982e1"},
-    {file = "wcwidth-0.2.14.tar.gz", hash = "sha256:4d478375d31bc5395a3c55c40ccdf3354688364cd61c4f6adacaa9215d0b3605"},
+    {file = "wcwidth-0.5.3-py3-none-any.whl", hash = "sha256:d584eff31cd4753e1e5ff6c12e1edfdb324c995713f75d26c29807bb84bf649e"},
+    {file = "wcwidth-0.5.3.tar.gz", hash = "sha256:53123b7af053c74e9fe2e92ac810301f6139e64379031f7124574212fb3b4091"},
 ]
 
 [[package]]
 name = "xonsh"
-version = "0.22.1"
+version = "0.22.3"
 description = "Python-powered shell. Full-featured and cross-platform."
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "xonsh-0.22.1-py311-none-any.whl", hash = "sha256:1b16a7b04ee9602688192dd1b04c06dd70ef5ce3d702b0d504e36326d7052b54"},
-    {file = "xonsh-0.22.1-py312-none-any.whl", hash = "sha256:b1265ada8bb8325f7c6b16b81e04fb922c8dd8bfeaf1be4821df410ac71686e3"},
-    {file = "xonsh-0.22.1-py313-none-any.whl", hash = "sha256:62cdbbb68a925efbe858826d78177553fbf72b721e49a2c133c62e682eb4d94a"},
-    {file = "xonsh-0.22.1.tar.gz", hash = "sha256:99db059725dc7061c1647099fe8ce619ba2ce520018606a2f7a720032622a9b5"},
+    {file = "xonsh-0.22.3-py311-none-any.whl", hash = "sha256:0bdbabb060163a6a0067b13dd47775af8191c7241c3950b210a42f0c8112d7eb"},
+    {file = "xonsh-0.22.3-py312-none-any.whl", hash = "sha256:8efcd0aaaf0040c5e843884a067c036edf562a618fcd5c71d0ee9ff8caff5037"},
+    {file = "xonsh-0.22.3-py313-none-any.whl", hash = "sha256:63d989a7d59d5600a4c1f38b09719f19aaa47e673b428db55a6cabe0d2300fe7"},
+    {file = "xonsh-0.22.3.tar.gz", hash = "sha256:67468d9689cdfc88c90b3530c696b70f540959216968c016bea3645343134069"},
 ]
 
 [package.extras]
