@@ -2,7 +2,7 @@
 
 [tool.poetry]
 name = "xontrib-bluray"
-version = "2026.01.19"
+version = "2026.02.07"
 description = "Upgrade from cd to bluray"
 authors = ["uninstall-your-browser <none@none.invalid>"]
 
