@@ -15,7 +15,9 @@ class CustomLexer(Lexer):
         )
 
     def split(self, s):
+        # ruff: noqa
         """A modified version of the split function which preserves whitespace from the input string"""
+
         self.input(s, is_subproc=True)
         elements = []
         l = c = -1

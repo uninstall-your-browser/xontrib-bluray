@@ -13,8 +13,8 @@ class DialogFuture[T](Protocol):
 
 async def show_as_float[T](
     dialog: DialogFuture[T] | FocusableElement,
-    height: int | Callable[[], int] = None,
-    width: int | Callable[[], int] = None,
+    height: int | Callable[[], int] | None = None,
+    width: int | Callable[[], int] | None = None,
     top: int | None = None,
     right: int | None = None,
     bottom: int | None = None,

@@ -202,10 +202,11 @@ class PathPicker:
         app = get_app()
 
         if self.is_filtering:
-            self._clear_filter()
             app.layout.focus(self.filter_textarea)
         else:
             app.layout.focus(self.main_window)
+            self._clear_filter()
+            self._update_and_reselect()
 
         self._update_bottom_bar()
 

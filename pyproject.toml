@@ -90,3 +90,5 @@ select = [
     "TCH", # flake8-type-checking
     "RUF", # ruff specific rules
 ]
+ignore = ["E501"]
+

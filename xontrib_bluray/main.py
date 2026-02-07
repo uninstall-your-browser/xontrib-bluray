@@ -6,7 +6,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
     import re
     from asyncio import ensure_future
     from pathlib import Path
-    from typing import NamedTuple
+    from typing import TYPE_CHECKING, NamedTuple
 
     from prompt_toolkit.application import get_app
     from prompt_toolkit.filters import Condition
@@ -14,17 +14,20 @@ def _load_xontrib_(xsh: XonshSession, **_):
     from prompt_toolkit.keys import Keys
     from prompt_toolkit.styles import merge_styles
     from xonsh.events import events
-    from xonsh.prompt.base import PromptFields
-    from xonsh.shells.ptk_shell import PromptToolkitShell
+
+    if TYPE_CHECKING:
+        from xonsh.prompt.base import PromptFields
+        from xonsh.shells.ptk_shell import PromptToolkitShell
 
     from xontrib_bluray import constants, dialog
-    from xontrib_bluray.constants import STATE_FILE
+    from xontrib_bluray.constants import MAX_HEIGHT, STATE_FILE
     from xontrib_bluray.custom_lexer import CustomLexer
     from xontrib_bluray.path_picker import PathPickerDialog
 
     STATE_FILE.parent.mkdir(exist_ok=True, parents=True)
 
     path_string_pattern = re.compile("^[pf]?['\"]?(.+?)[\"']?$")
+    coro_refs = set()
 
     def split_prompt_to_args(prompt: str) -> list[str]:
         split_prompt = CustomLexer(tolerant=False, pymode=False).split(prompt)
@@ -149,7 +152,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
                     try:
                         new_dir: Path | None = await dialog.show_as_float(
                             PathPickerDialog("Change directory", accept_files=False),
-                            height=20,
+                            height=MAX_HEIGHT,
                             bottom=0,
                             top=1,
                             left=0,
@@ -176,7 +179,9 @@ def _load_xontrib_(xsh: XonshSession, **_):
                     finally:
                         _is_open = False
 
-            ensure_future(coro())
+            task = ensure_future(coro())
+            coro_refs.add(task)
+            task.add_done_callback(coro_refs.discard)
 
         @bindings.add(Keys.ControlY, filter=is_not_open)
         def show_interactive_path_picker(event: KeyPressEvent):
@@ -232,7 +237,7 @@ def _load_xontrib_(xsh: XonshSession, **_):
 
                         new_dir: Path | None = await dialog.show_as_float(
                             create_path_picker_dialog(prompt_args, selected_arg),
-                            height=20,
+                            height=MAX_HEIGHT,
                             bottom=0,
                             top=1,
                             left=0,
@@ -263,7 +268,9 @@ def _load_xontrib_(xsh: XonshSession, **_):
                     finally:
                         _is_open = False
 
-            ensure_future(coro())
+            task = ensure_future(coro())
+            coro_refs.add(task)
+            task.add_done_callback(coro_refs.discard)
 
 
 def run():

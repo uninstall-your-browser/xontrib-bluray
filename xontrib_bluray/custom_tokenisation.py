@@ -1,3 +1,4 @@
+# ruff: noqa
 """
 I played XONSH but I added CUSTOM TOKENISATION <soyface_thumb.png>
 The xonsh tokeniser does not preserve line continuations and indents for lines other than the first when using line continuations.
