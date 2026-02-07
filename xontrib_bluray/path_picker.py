@@ -1,3 +1,4 @@
+import difflib
 from asyncio import Future
 from collections.abc import Iterable
 from configparser import ConfigParser
@@ -20,7 +21,13 @@ from prompt_toolkit.layout import (
 )
 from prompt_toolkit.widgets import Dialog, Label
 
-from xontrib_bluray.constants import MAX_CONTENT_HEIGHT, MIN_WIDTH, STATE_FILE
+from xontrib_bluray.constants import (
+    FILTER_MAX_RESULTS,
+    FILTER_MIN_SCORE,
+    MAX_CONTENT_HEIGHT,
+    MIN_WIDTH,
+    STATE_FILE,
+)
 from xontrib_bluray.custom_text_area import FocusStyleableTextArea
 
 
@@ -57,9 +64,17 @@ class PathPicker:
         accept_files: bool = True,
     ):
         self.show_dotfiles = read_show_dotfiles_state()
+        self.is_filtering = False
 
         self.kb = KeyBindings()
         self.bottom_bar = Label("", align=WindowAlign.RIGHT)
+        self.filter_textarea = FocusStyleableTextArea(
+            focusable=True,
+            dont_extend_width=False,
+            dont_extend_height=True,
+            height=1,
+            multiline=False,
+        )
         self.current_dir = current_dir or Path(".").absolute()
         self.future = Future[Path | None]()
         self.options: list[Path]
@@ -72,15 +87,11 @@ class PathPicker:
         self.accept_files = accept_files
 
         textarea_kb = KeyBindings()
-        self.filter_textarea = FocusStyleableTextArea(
-            focusable=True,
-            dont_extend_width=False,
-            dont_extend_height=True,
-            height=1,
-            multiline=False,
+
+        self.filter_textarea.buffer.on_text_changed.add_handler(
+            lambda *args: self._update_and_reselect()
         )
         self.filter_textarea.control.key_bindings = textarea_kb
-        self.is_filtering = False
 
         kb = self.kb
 
@@ -111,7 +122,7 @@ class PathPicker:
         def _(event):
             self._selected()
 
-        @kb.add(Keys.Escape, eager=True)
+        @kb.add("escape")
         @kb.add(Keys.Backspace)
         @kb.add("q")
         @kb.add("c-q")
@@ -142,13 +153,15 @@ class PathPicker:
             self._clear_filter()
 
         @kb.add("/")
-        @textarea_kb.add("escape", eager=True)
+        @textarea_kb.add("escape")
+        @textarea_kb.add("/")
         def _(event: KeyPressEvent):
             self._toggle_filtering()
 
         self.main_window = Window(
             FormattedTextControl(self._draw, focusable=True, key_bindings=kb),
             always_hide_cursor=True,
+            width=Dimension(min=MIN_WIDTH),
         )
 
         @Condition
@@ -173,7 +186,6 @@ class PathPicker:
                 self.main_window,
                 self.bottom_bar,
             ],
-            width=Dimension(min=MIN_WIDTH),
         )
         self._update_bottom_bar()
 
@@ -260,15 +272,21 @@ class PathPicker:
         self._update_list_offset()
 
     def _toggle_dotfiles(self) -> None:
-        old_options = self.options
-        old_selection = self.selected_option
-        selection = self.options[self.selected_option]
         self.show_dotfiles = not self.show_dotfiles
-        self._update_options_list(self.current_dir)
+        self._update_and_reselect()
         self._update_bottom_bar()
         write_show_dotfiles_state(self.show_dotfiles)
 
-        if selection in self.options:
+    def _update_and_reselect(self):
+        old_options = self.options
+        old_selection = self.selected_option
+        selection = self.options[min(self.selected_option, len(self.options) - 1)]
+        self._update_options_list(self.current_dir)
+
+        if self.is_filtering:
+            # Always highlight best match while filtering
+            self.selected_option = min(1, len(self.options))
+        elif selection in self.options:
             # If the selected is still in the list, re-select it
             self.selected_option = self.options.index(selection)
         else:
@@ -341,17 +359,34 @@ class PathPicker:
             else:
                 return not is_dotfile(path)
 
-        items = list(filter(dotfiles_filter, new_dir.iterdir()))
+        items: list[Path] = list(filter(dotfiles_filter, new_dir.iterdir()))
+        filter_text = self.filter_textarea.text
 
-        def name_key(it: Path):
-            return it.name.lower()
+        if self.is_filtering and filter_text != "":
+            str_items = difflib.get_close_matches(
+                filter_text,
+                [item.name for item in items],
+                cutoff=FILTER_MIN_SCORE,
+                n=FILTER_MAX_RESULTS,
+            )
+            items = [new_dir / item for item in str_items]
 
-        dirs = sorted(filter(lambda it: it.is_dir(), items), key=name_key)
-        files = sorted(filter(lambda it: it.is_file(), items), key=name_key)
+            self.options = items
+        else:
 
-        self.options = list(dirs + files)
+            def name_key(it: Path):
+                return it.name.lower()
+
+            dirs = sorted(filter(lambda it: it.is_dir(), items), key=name_key)
+            files = sorted(filter(lambda it: it.is_file(), items), key=name_key)
+
+            self.options = list(dirs + files)
+
         # Add an option to select the current directory, always at the top of the list
-        self.options.insert(0, new_dir)
+        if len(self.options) > 0:
+            self.options.insert(0, new_dir)
+        else:
+            self.options.append(new_dir)
 
     def _selected(self) -> None:
         # TODO: show a message if the dialog doesn't accept files
