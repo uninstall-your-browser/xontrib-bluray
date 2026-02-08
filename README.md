@@ -2,7 +2,7 @@
 
 bluray is an in-terminal, interactive path chooser and directory changer. Unlike other tools (broot, ranger, xplr, etc), bluray is written specifically for xonsh and is directly part of the prompt - not a subprocess or command.
 
-![demo](images/demo.mp4)
+![demo](images/demo.mp4?raw=true)
 
 ## Install
 
