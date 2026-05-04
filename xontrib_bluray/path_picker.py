@@ -2,6 +2,7 @@ import difflib
 from asyncio import Future
 from collections.abc import Iterable
 from configparser import ConfigParser
+from heapq import nlargest
 from pathlib import Path
 from typing import override
 
@@ -364,15 +365,7 @@ class PathPicker:
         filter_text = self.filter_textarea.text
 
         if self.is_filtering and filter_text != "":
-            str_items = difflib.get_close_matches(
-                filter_text,
-                [item.name for item in items],
-                cutoff=FILTER_MIN_SCORE,
-                n=FILTER_MAX_RESULTS,
-            )
-            items = [new_dir / item for item in str_items]
-
-            self.options = items
+            self.options = self._filter_items(items, filter_text)
         else:
 
             def name_key(it: Path):
@@ -388,6 +381,44 @@ class PathPicker:
             self.options.insert(0, new_dir)
         else:
             self.options.append(new_dir)
+
+    @staticmethod
+    def _filter_items(items: list[Path], filter_text: str) -> list[Path]:
+        # Modified from difflib.get_close_matches
+
+        if not 0.0 <= FILTER_MIN_SCORE <= 1.0:
+            raise ValueError(f"cutoff must be in [0.0, 1.0]: {FILTER_MIN_SCORE}")
+
+        result = []
+        s = difflib.SequenceMatcher()
+        s.set_seq2(filter_text)
+        for candidate_path in items:
+            candidate = candidate_path.name
+            s.set_seq1(candidate)
+            if (
+                s.real_quick_ratio() >= FILTER_MIN_SCORE
+                and s.quick_ratio() >= FILTER_MIN_SCORE
+                and s.ratio() >= FILTER_MIN_SCORE
+            ):
+                multiplier = 1
+
+                if len(filter_text) >= 3:
+                    # Boost candidates that start with the filter text and other exact matches
+                    if candidate.startswith(filter_text):
+                        multiplier = 9
+                    elif candidate.lower().startswith(filter_text.lower()):
+                        multiplier = 8
+                    elif filter_text in candidate:
+                        multiplier = 7
+                    elif filter_text.lower() in candidate.lower():
+                        multiplier = 6
+
+                result.append((s.ratio() * multiplier, candidate_path))
+
+        # Move the best scorers to head of list
+        result = nlargest(FILTER_MAX_RESULTS, result)
+
+        return [item for score, item in result]
 
     def _selected(self) -> None:
         # TODO: show a message if the dialog doesn't accept files
