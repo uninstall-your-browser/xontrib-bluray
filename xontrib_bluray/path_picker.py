@@ -287,7 +287,7 @@ class PathPicker:
 
         if self.is_filtering:
             # Always highlight best match while filtering
-            self.selected_option = min(1, len(self.options))
+            self.selected_option = min(1, len(self.options) - 1)
         elif selection in self.options:
             # If the selected is still in the list, re-select it
             self.selected_option = self.options.index(selection)
