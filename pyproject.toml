@@ -1,58 +1,42 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling" ]
 
 [project]
 name = "xontrib-bluray"
 version = "2026.10.19"
 description = "Upgrade from cd to bluray"
+readme.content-type = "text/markdown"
+readme.file = "README.md"
+authors = [
+    { name = "uninstall-your-browser", email = "170106706+uninstall-your-browser@users.noreply.github.com" },
+]
+requires-python = ">=3.13"
 classifiers = [
-    "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: System :: Shells",
     "Topic :: System :: System Shells",
     "Topic :: Terminals",
 ]
-requires-python = ">=3.13"
-dependencies = ["xonsh>=0.12.5"]
-authors = [
-    { name = "uninstall-your-browser", email = "170106706+uninstall-your-browser@users.noreply.github.com" },
-]
-[project.readme]
-file = "README.md"
-content-type = "text/markdown"
-
-
-
-[project.entry-points."xonsh.xontribs"]
-"bluray" = "xontrib_bluray.__main__"
-
-
-
-[project.urls]
-
-Homepage = "https://github.com/uninstall-your-browser/xontrib-bluray"
-Documentation = "https://github.com/uninstall-your-browser/xontrib-bluray/blob/master/README.md"
-Code = "https://github.com/uninstall-your-browser/xontrib-bluray"
-"Issue tracker" = "https://github.com/uninstall-your-browser/xontrib-bluray/issues"
-
-
-
+dependencies = [ "xonsh>=0.12.5" ]
+urls."Issue tracker" = "https://github.com/uninstall-your-browser/xontrib-bluray/issues"
+urls.Code = "https://github.com/uninstall-your-browser/xontrib-bluray"
+urls.Documentation = "https://github.com/uninstall-your-browser/xontrib-bluray/blob/master/README.md"
+urls.Homepage = "https://github.com/uninstall-your-browser/xontrib-bluray"
+entry-points."xonsh.xontribs".bluray = "xontrib_bluray.__main__"
 
 [dependency-groups]
-dev = ["pytest>=7.0"]
+dev = [ "pytest>=7" ]
+
+[tool.hatch]
+build.targets.wheel.packages = [ "xontrib_bluray" ]
 
 [tool.uv]
-
-
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-    
-packages = ["xontrib_bluray"]
-    
-
 
 [tool.black]
 include = '\.pyi?$'
@@ -75,15 +59,13 @@ force-exclude = '''
 
 [tool.ruff]
 lint.select = [
+    "B",   # flake8-bugbear
     "E",
     "F",
-    "B", # flake8-bugbear
-    "I", # isort
-    "UP", # pyupgrade
+    "I",   # isort
+    "RUF", # ruff specific rules
     "SIM", # simplify
     "TCH", # flake8-type-checking
-    "RUF", # ruff specific rules
+    "UP",  # pyupgrade
 ]
-lint.ignore = [
-    "E501"
-]
+lint.ignore = [ "E501" ]
