@@ -4,7 +4,7 @@
 name = "xontrib-bluray"
 version = "2026.06.14"
 description = "Upgrade from cd to bluray"
-authors = ["uninstall-your-browser <none@none.invalid>"]
+authors = ["uninstall-your-browser <170106706+uninstall-your-browser@users.noreply.github.com>"]
 
 license = "MIT"
 readme = "README.md"
