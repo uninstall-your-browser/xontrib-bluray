@@ -43,8 +43,6 @@ python = ">=3.13"
 xonsh = ">=0.20"
 prompt-toolkit = "^3.0.52"
 
-[tool.poetry.scripts]
-run-bluray="xontrib_bluray:run"
 
 [tool.poetry.dev-dependencies]
 pytest = ">=7.0"
